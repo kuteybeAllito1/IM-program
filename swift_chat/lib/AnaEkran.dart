@@ -1,18 +1,22 @@
 // ignore_for_file: prefer_const_constructors, unused_import, sized_box_for_whitespace, unused_field, no_leading_underscores_for_local_identifiers, unused_local_variable, avoid_print, file_names, unnecessary_string_interpolations, prefer_const_literals_to_create_immutables
-
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:swift_chat/GirisEkrani.dart';
+import 'package:swift_chat/GrupSohbetAna.dart';
 import 'package:swift_chat/Methods.dart';
 import 'package:swift_chat/SohbetOdasi.dart';
 
 class AnaEkran extends StatefulWidget {
-  const AnaEkran({super.key});
+  const AnaEkran({Key? key}) : super(key: key);
 
   @override
   State<AnaEkran> createState() => _AnaEkranState();
 }
 
-class _AnaEkranState extends State<AnaEkran> {
+class _AnaEkranState extends State<AnaEkran> with WidgetsBindingObserver {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   Map<String, dynamic>? userMap;
   bool isLoading = false;
   final TextEditingController _search = TextEditingController();
@@ -26,8 +30,31 @@ class _AnaEkranState extends State<AnaEkran> {
     }
   }
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    setStatus("offline");
+  }
+
+  void setStatus(String status) async {
+    await _firestore.collection('users').doc(_auth.currentUser!.uid).update({
+      "status": status,
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // online
+      setStatus("Online");
+    } else {
+      // offline
+      setStatus("Offline");
+    }
+  }
+
   void onSearch() async {
-    FirebaseFirestore _firestore = FirebaseFirestore.instance;
     setState(() {
       isLoading = true;
     });
@@ -41,7 +68,6 @@ class _AnaEkranState extends State<AnaEkran> {
         if (value.docs.isNotEmpty) {
           userMap = value.docs[0].data();
         } else {
-          // Handle the case when no matching document is found
           userMap = null;
         }
         isLoading = false;
@@ -55,7 +81,18 @@ class _AnaEkranState extends State<AnaEkran> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     return Scaffold(
-      appBar: AppBar(title: Text("Ana Sayfa")),
+      appBar: AppBar(
+        title: Text("Ana Sayfa"),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: () {
+              Navigator.pop(
+                  context, MaterialPageRoute(builder: (_) => GirisEkrani()));
+            },
+          ),
+        ],
+      ),
       body: isLoading
           ? Center(
               child: Container(
@@ -67,7 +104,7 @@ class _AnaEkranState extends State<AnaEkran> {
           : Column(
               children: [
                 SizedBox(
-                  height: size.height / 20, //ekran ustunden
+                  height: size.height / 20,
                 ),
                 Container(
                   height: size.height / 14,
@@ -101,11 +138,19 @@ class _AnaEkranState extends State<AnaEkran> {
                 ),
                 if (userMap != null)
                   ListTile(
-                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => SohbetOdasi(
-                              chatRoomId: '',
-                              userMap: {},
-                            ))),
+                    onTap: () {
+                      String roomId = chatRoomId(
+                          _auth.currentUser!.displayName!, userMap!['name']);
+
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => SohbetOdasi(
+                            chatRoomId: roomId,
+                            userMap: userMap!,
+                          ),
+                        ),
+                      );
+                    },
                     leading: Icon(
                       Icons.account_box,
                       color: Colors.black,
@@ -124,8 +169,15 @@ class _AnaEkranState extends State<AnaEkran> {
                     ),
                   )
                 else
-                  Container()
+                  Container(),
               ],
+            ),
+            floatingActionButton: FloatingActionButton(
+              child: Icon(Icons.group),
+              onPressed: () =>Navigator.of(context).push(MaterialPageRoute(builder: 
+              (_) => GrubSohbetAna(),
+              ),
+             ),
             ),
     );
   }
