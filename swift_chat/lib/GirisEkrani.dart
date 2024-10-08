@@ -13,7 +13,6 @@ class _GirisEkraniState extends State<GirisEkrani> {
   final TextEditingController _email = TextEditingController();
   final TextEditingController _password = TextEditingController();
   bool isLoading = false;
-
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -32,7 +31,7 @@ class _GirisEkraniState extends State<GirisEkrani> {
                 children: [
                   SizedBox(
                     height:
-                        size.height / 20, // Ekranın üst kısmında boşluk bırak
+                        size.height / 20, // Ekranın üst kısmında boşluk bırakggggggggggggggggggggggggggggggggg
                   ),
                   Container(
                     alignment: Alignment.centerLeft,
